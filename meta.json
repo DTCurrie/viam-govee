@@ -1,0 +1,47 @@
+{
+  "$schema": "https://dl.viam.dev/module.schema.json",
+  "module_id": "dtcurrie:viam-govee",
+  "visibility": "public",
+  "url": "https://github.com/DTCurrie/viam-govee",
+  "description": "Govee smart light control module for Viam",
+  "models": [
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-brightness",
+      "short_description": "Govee light on/off and brightness control",
+      "markdown_link": "README.md#govee-light-brightness"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-color",
+      "short_description": "Govee light RGB color channel control",
+      "markdown_link": "README.md#govee-light-color"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-lights-mode",
+      "short_description": "Govee pre-defined lighting modes",
+      "markdown_link": "README.md#govee-lights-mode"
+    },
+    {
+      "api": "rdk:service:discovery",
+      "model": "dtcurrie:viam-govee:govee-discovery",
+      "short_description": "Govee device discovery service",
+      "markdown_link": "README.md#govee-discovery"
+    },
+    {
+      "api": "rdk:component:sensor",
+      "model": "dtcurrie:viam-govee:govee-light-sensor",
+      "short_description": "Govee light state and color sensor readings",
+      "markdown_link": "README.md#govee-light-sensor"
+    }
+  ],
+  "entrypoint": "bin/viam-govee",
+  "first_run": "",
+  "build": {
+    "build": "make module.tar.gz",
+    "setup": "make setup",
+    "path": "module.tar.gz",
+    "arch": ["linux/amd64", "linux/arm64", "darwin/arm64", "windows/amd64"]
+  }
+}

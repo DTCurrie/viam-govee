@@ -1,6 +1,9 @@
+> [!WARNING]
+> **Work in Progress** — This module is under active development and is not guaranteed to work. APIs, configuration, and behavior may change without notice. Use at your own risk.
+
 # Module viam-govee
 
-A [Viam](https://www.viam.com/) module for controlling [Govee](https://us.govee.com/) smart lights using the [Govee Developer REST API](https://developer.govee.com/docs).
+A [Viam](https://www.viam.com/) module for controlling [Govee](https://us.govee.com/) smart lights using the [Govee OpenAPI](https://developer.govee.com/docs).
 
 Powered by the [govee-go](https://github.com/DTCurrie/govee-go) client library.
 
@@ -28,31 +31,86 @@ Discovery service that finds all Govee devices in your account and emits ready-t
 
 For each device discovered:
 
-- A `govee-light-brightness` switch is emitted (for any device supporting `"turn"` or `"brightness"`).
-- A `govee-light-sensor` is emitted (for retrievable devices only).
-- Three `govee-light-color` switches are emitted for `red`, `green`, and `blue` channels (for devices supporting `"color"`).
+**Smart plugs** (devices with type `devices.types.socket`):
 
-If any color-capable devices are found, a single `govee-lights-mode` switch named `govee-mode` is emitted covering all of them.
+- A `govee-plug-switch` switch is emitted.
+- A `govee-plug-sensor` sensor is emitted.
 
-## govee-light-brightness
+**Smart lights** (all other devices):
 
-Controls a single Govee device's on/off state and brightness. Implements the switch interface.
+- A `govee-light-switch` switch is emitted for devices supporting `on_off` (`powerSwitch`).
+- A `govee-light-brightness` switch is emitted for devices supporting `brightness`.
+- A `govee-light-color-temp` switch is emitted for devices supporting color temperature (`colorTemperatureK`).
+- A `govee-light-sensor` sensor is emitted for every light device.
+- Three `govee-light-color` switches (`red`, `green`, `blue`) are emitted for devices supporting `colorRgb`.
+- A `govee-light-scene` switch is emitted for devices supporting dynamic scenes (`lightScene`).
+- A `govee-light-diy-scene` switch is emitted for devices supporting user-created DIY scenes (`diyScene`).
+- A `govee-light-snapshot` switch is emitted for devices supporting saved snapshots (`snapshot`).
+
+## govee-light-switch
+
+Controls a single Govee light's power state. Implements the switch interface.
 
 ```json
 {
   "api_key": "your-govee-api-key",
   "device": "AA:BB:CC:DD:EE:FF:00:11",
-  "model": "H6159"
+  "sku": "H6159"
 }
 ```
 
 ### Switch Positions
 
-| Position | Effect                                 |
-| -------- | -------------------------------------- |
-| `0`      | Light off                              |
-| `1`      | Light on at last-set brightness        |
-| `2–100`  | Light on at that brightness percentage |
+| Position | Effect    |
+| -------- | --------- |
+| `0`      | Light off |
+| `1`      | Light on  |
+
+`GetPosition` queries live state from the API and falls back to the last locally tracked position if the device is unreachable.
+
+## govee-light-brightness
+
+Controls a single Govee light's brightness. Implements the switch interface.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "AA:BB:CC:DD:EE:FF:00:11",
+  "sku": "H6159"
+}
+```
+
+### Switch Positions
+
+| Position | Effect                                             |
+| -------- | -------------------------------------------------- |
+| `1–100`  | Brightness percentage (maps 1:1 to API brightness) |
+
+Use `govee-light-switch` to turn the device on or off.
+
+## govee-light-color-temp
+
+Controls a single Govee light's color temperature. Implements the switch interface.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "AA:BB:CC:DD:EE:FF:00:11",
+  "sku": "H6159"
+}
+```
+
+The Kelvin range (e.g. 2000–9000 K) is read from the device's `colorTemperatureK` capability at startup and mapped linearly across positions 1–100.
+
+### Switch Positions
+
+| Position | Effect                                                       |
+| -------- | ------------------------------------------------------------ |
+| `1`      | Warmest color temperature (e.g. 2000 K)                      |
+| `1–100`  | Linear range from warmest to coolest (e.g. 2000 K to 9000 K) |
+| `100`    | Coolest color temperature (e.g. 9000 K)                      |
+
+Use `govee-light-switch` to turn the device on or off.
 
 ## govee-light-color
 
@@ -62,7 +120,7 @@ Controls a single RGB color channel on a Govee light that supports color. Implem
 {
   "api_key": "your-govee-api-key",
   "device": "AA:BB:CC:DD:EE:FF:00:11",
-  "model": "H6159",
+  "sku": "H6159",
   "channel": "red"
 }
 ```
@@ -75,6 +133,75 @@ Controls a single RGB color channel on a Govee light that supports color. Implem
 | -------- | ------------------------------------------------------- |
 | `0–255`  | Channel intensity (maps 1:1 to the 0–255 channel value) |
 
+## govee-light-scene
+
+Activates a dynamic scene on a single Govee light. Scenes are fetched from the Govee API at startup and exposed as numbered positions. Position `0` turns the device off; all other positions activate the corresponding scene.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "AA:BB:CC:DD:EE:FF:00:11",
+  "sku": "H6159"
+}
+```
+
+### Switch Positions
+
+| Position | Effect                               |
+| -------- | ------------------------------------ |
+| `0`      | Light off                            |
+| `1`      | First dynamic scene (e.g. "Sunrise") |
+| `2`      | Second dynamic scene (e.g. "Ocean")  |
+| `…`      | Additional scenes in API order       |
+
+Use `GetNumberOfPositions` to retrieve the full list of available scene names for a device.
+
+## govee-light-diy-scene
+
+Activates a user-created DIY scene on a single Govee light. DIY scenes are scenes you have built in the Govee Home app. They are fetched from the Govee API at startup and exposed as numbered positions. Position `0` turns the device off; all other positions activate the corresponding DIY scene.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "AA:BB:CC:DD:EE:FF:00:11",
+  "sku": "H6159"
+}
+```
+
+### Switch Positions
+
+| Position | Effect                                   |
+| -------- | ---------------------------------------- |
+| `0`      | Light off                                |
+| `1`      | First DIY scene (e.g. "My Custom Scene") |
+| `2`      | Second DIY scene (e.g. "Party Mode")     |
+| `…`      | Additional DIY scenes in API order       |
+
+Use `GetNumberOfPositions` to retrieve the full list of available DIY scene names for a device.
+
+## govee-light-snapshot
+
+Activates a saved snapshot on a single Govee light. Snapshots are color and scene configurations you have saved in the Govee Home app. They are parsed from the device's static capabilities at startup and exposed as numbered positions. Position `0` turns the device off; all other positions activate the corresponding snapshot.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "AA:BB:CC:DD:EE:FF:00:11",
+  "sku": "H6159"
+}
+```
+
+### Switch Positions
+
+| Position | Effect                                   |
+| -------- | ---------------------------------------- |
+| `0`      | Light off                                |
+| `1`      | First snapshot (e.g. "Sunrise")          |
+| `2`      | Second snapshot (e.g. "Sunset")          |
+| `…`      | Additional snapshots in capability order |
+
+Use `GetNumberOfPositions` to retrieve the full list of available snapshot names for a device.
+
 ## govee-light-sensor
 
 Reports the current state of a single Govee light. Implements the sensor interface.
@@ -83,7 +210,7 @@ Reports the current state of a single Govee light. Implements the sensor interfa
 {
   "api_key": "your-govee-api-key",
   "device": "AA:BB:CC:DD:EE:FF:00:11",
-  "model": "H6159"
+  "sku": "H6159"
 }
 ```
 
@@ -91,53 +218,81 @@ Reports the current state of a single Govee light. Implements the sensor interfa
 
 **Device metadata** (always present):
 
-| Key            | Type   | Description                                 |
-| -------------- | ------ | ------------------------------------------- |
-| `device_name`  | string | User-assigned device name                   |
-| `model`        | string | Product model identifier                    |
-| `device_id`    | string | MAC address                                 |
-| `controllable` | bool   | Whether the device accepts control commands |
-| `retrievable`  | bool   | Whether live state can be queried           |
-| `support_cmds` | string | Comma-separated list of supported commands  |
+| Key            | Type     | Description                                      |
+| -------------- | -------- | ------------------------------------------------ |
+| `device_name`  | string   | User-assigned device name                        |
+| `sku`          | string   | Product model identifier (SKU)                   |
+| `device_id`    | string   | MAC address                                      |
+| `device_type`  | string   | Device type (e.g. `devices.types.light`)         |
+| `capabilities` | []string | List of supported capability type/instance pairs |
 
-**Live state** (present when `retrievable: true`):
+**Live state** (attempted on every call; absent if unavailable):
 
-| Key           | Type   | Description                                                             |
-| ------------- | ------ | ----------------------------------------------------------------------- |
-| `online`      | bool   | Whether the device is reachable (cached; may be stale)                  |
-| `power_state` | string | `"on"` or `"off"`                                                       |
-| `brightness`  | int    | Current brightness (0–100)                                              |
-| `red`         | int    | Current red channel value (0–255)                                       |
-| `green`       | int    | Current green channel value (0–255)                                     |
-| `blue`        | int    | Current blue channel value (0–255)                                      |
-| `color_temp`  | int    | Current color temperature in Kelvin (omitted if not in color temp mode) |
+| Key                 | Type   | Description                                                                                                                                                 |
+| ------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `online`            | bool   | Whether the device is reachable                                                                                                                             |
+| `power_state`       | bool   | `true` if on, `false` if off                                                                                                                                |
+| `brightness`        | int    | Current brightness (0–100)                                                                                                                                  |
+| `red`               | int    | Current red channel value (0–255)                                                                                                                           |
+| `green`             | int    | Current green channel value (0–255)                                                                                                                         |
+| `blue`              | int    | Current blue channel value (0–255)                                                                                                                          |
+| `color_temp`        | int    | Current color temperature in Kelvin (omitted if not in color temp mode)                                                                                     |
+| `toggle_<instance>` | bool   | State of each toggle capability the device reports (e.g. `toggle_gradientToggle`). Only present when the device has that toggle and its state is available. |
+| `note`              | string | Error message if live state could not be retrieved                                                                                                          |
 
-## govee-lights-mode
+## govee-plug-switch
 
-Controls pre-defined lighting modes across one or more devices. The default mode is `"none"`, which restores lights to their state before any mode was activated.
+Controls a single Govee smart plug's power state. Implements the switch interface.
 
 ```json
 {
   "api_key": "your-govee-api-key",
-  "daylight": [
-    { "device": "AA:BB:CC:DD:EE:FF:00:11", "model": "H6159" },
-    { "device": "11:22:33:44:55:66:77:88", "model": "H6159" }
-  ],
-  "warm": [{ "device": "AA:BB:CC:DD:EE:FF:00:11", "model": "H6159" }]
+  "device": "11:22:33:44:55:66:77:88",
+  "sku": "H5080"
 }
 ```
 
-Each mode key takes an array of device references. Only the modes you want to use need to be configured.
-
 ### Switch Positions
 
-| Position | Mode       | Effect                                                        |
-| -------- | ---------- | ------------------------------------------------------------- |
-| `0`      | `none`     | Restore all devices to their saved pre-mode state             |
-| `1`      | `daylight` | Cool daylight white (6500 K) at full brightness               |
-| `2`      | `warm`     | Warm incandescent white (2700 K) at moderate brightness (60%) |
+| Position | Effect   |
+| -------- | -------- |
+| `0`      | Plug off |
+| `1`      | Plug on  |
 
-When switching to a mode, the current device state is automatically saved so it can be restored when returning to `none`.
+`GetPosition` queries live state from the API and falls back to the last locally tracked position if the device is unreachable.
+
+## govee-plug-sensor
+
+Reports the current state of a single Govee smart plug. Implements the sensor interface.
+
+```json
+{
+  "api_key": "your-govee-api-key",
+  "device": "11:22:33:44:55:66:77:88",
+  "sku": "H5080"
+}
+```
+
+### Readings
+
+**Device metadata** (always present):
+
+| Key            | Type     | Description                                      |
+| -------------- | -------- | ------------------------------------------------ |
+| `device_name`  | string   | User-assigned device name                        |
+| `sku`          | string   | Product model identifier (SKU)                   |
+| `device_id`    | string   | MAC address                                      |
+| `device_type`  | string   | Device type (e.g. `devices.types.socket`)        |
+| `capabilities` | []string | List of supported capability type/instance pairs |
+
+**Live state** (attempted on every call; absent if unavailable):
+
+| Key                 | Type   | Description                                                                                                                                                |
+| ------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `online`            | bool   | Whether the device is reachable                                                                                                                            |
+| `power_state`       | bool   | `true` if on, `false` if off                                                                                                                               |
+| `toggle_<instance>` | bool   | State of each toggle capability the device reports (e.g. `toggle_socketToggle1`). Only present when the device has that toggle and its state is available. |
+| `note`              | string | Error message if live state could not be retrieved                                                                                                         |
 
 ## Viam Config Example
 
@@ -155,13 +310,23 @@ When switching to a mode, the current device state is automatically saved so it 
   ],
   "components": [
     {
+      "name": "living-room-light-switch",
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-switch",
+      "attributes": {
+        "api_key": "your-govee-api-key",
+        "device": "AA:BB:CC:DD:EE:FF:00:11",
+        "sku": "H6159"
+      }
+    },
+    {
       "name": "living-room-light",
       "api": "rdk:component:switch",
       "model": "dtcurrie:viam-govee:govee-light-brightness",
       "attributes": {
         "api_key": "your-govee-api-key",
         "device": "AA:BB:CC:DD:EE:FF:00:11",
-        "model": "H6159"
+        "sku": "H6159"
       }
     },
     {
@@ -171,8 +336,28 @@ When switching to a mode, the current device state is automatically saved so it 
       "attributes": {
         "api_key": "your-govee-api-key",
         "device": "AA:BB:CC:DD:EE:FF:00:11",
-        "model": "H6159",
+        "sku": "H6159",
         "channel": "red"
+      }
+    },
+    {
+      "name": "living-room-light-scene",
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-scene",
+      "attributes": {
+        "api_key": "your-govee-api-key",
+        "device": "AA:BB:CC:DD:EE:FF:00:11",
+        "sku": "H6159"
+      }
+    },
+    {
+      "name": "living-room-light-diy-scene",
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-diy-scene",
+      "attributes": {
+        "api_key": "your-govee-api-key",
+        "device": "AA:BB:CC:DD:EE:FF:00:11",
+        "sku": "H6159"
       }
     },
     {
@@ -182,17 +367,27 @@ When switching to a mode, the current device state is automatically saved so it 
       "attributes": {
         "api_key": "your-govee-api-key",
         "device": "AA:BB:CC:DD:EE:FF:00:11",
-        "model": "H6159"
+        "sku": "H6159"
       }
     },
     {
-      "name": "govee-mode",
+      "name": "office-plug",
       "api": "rdk:component:switch",
-      "model": "dtcurrie:viam-govee:govee-lights-mode",
+      "model": "dtcurrie:viam-govee:govee-plug-switch",
       "attributes": {
         "api_key": "your-govee-api-key",
-        "daylight": [{ "device": "AA:BB:CC:DD:EE:FF:00:11", "model": "H6159" }],
-        "warm": [{ "device": "AA:BB:CC:DD:EE:FF:00:11", "model": "H6159" }]
+        "device": "11:22:33:44:55:66:77:88",
+        "sku": "H5080"
+      }
+    },
+    {
+      "name": "office-plug-sensor",
+      "api": "rdk:component:sensor",
+      "model": "dtcurrie:viam-govee:govee-plug-sensor",
+      "attributes": {
+        "api_key": "your-govee-api-key",
+        "device": "11:22:33:44:55:66:77:88",
+        "sku": "H5080"
       }
     }
   ]

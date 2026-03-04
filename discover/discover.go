@@ -1,4 +1,4 @@
-package viamgovee
+package discover
 
 import (
 	"context"
@@ -13,10 +13,14 @@ import (
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/discovery"
 	"go.viam.com/rdk/utils"
+
+	"github.com/DTCurrie/viam-govee/internal/common"
+	"github.com/DTCurrie/viam-govee/light"
+	"github.com/DTCurrie/viam-govee/plug"
 )
 
 // GoveeDiscovery is the model identifier for the govee-discovery service.
-var GoveeDiscovery = family.WithModel("govee-discovery")
+var GoveeDiscovery = common.Family.WithModel("govee-discovery")
 
 func init() {
 	resource.RegisterService(discovery.API, GoveeDiscovery,
@@ -107,81 +111,130 @@ func (s *GoveeDiscover) discoverGovee(ctx context.Context) ([]resource.Config, e
 	}
 
 	var configs []resource.Config
-	var colorDevices []govee.Device
 
 	for _, device := range devices {
-		supportsColor := device.SupportsCmd("color")
+		isPlug := device.Type == govee.DeviceSocket
+		supportsColor := device.HasCapability(govee.CapabilityColorSetting, "colorRgb")
+		supportsColorTemp := device.HasCapability(govee.CapabilityColorSetting, "colorTemperatureK")
+		supportsBrightness := device.HasCapability(govee.CapabilityRange, "brightness")
+		supportsScene := device.HasCapability(govee.CapabilityDynamicScene, "lightScene")
+		supportsDIYScene := device.HasCapability(govee.CapabilityDynamicScene, "diyScene")
+		supportsSnapshot := device.HasCapability(govee.CapabilityDynamicScene, "snapshot")
 
-		s.logger.Debugf("discovered govee device: %s (%s) model=%s controllable=%v retrievable=%v",
-			device.DeviceName, device.DeviceID, device.Model, device.Controllable, device.Retrievable)
+		supportsOnOff := device.HasCapability(govee.CapabilityOnOff, "powerSwitch")
+
+		s.logger.Debugf("discovered govee device: %s (%s) sku=%s type=%s plug=%v on_off=%v color=%v color_temp=%v brightness=%v scene=%v diy_scene=%v snapshot=%v",
+			device.DeviceName, device.DeviceID, device.SKU, device.Type, isPlug, supportsOnOff, supportsColor, supportsColorTemp, supportsBrightness, supportsScene, supportsDIYScene, supportsSnapshot)
 
 		safeName := sanitizeName(device.DeviceName)
 
 		baseAttrs := utils.AttributeMap{
 			"api_key": s.cfg.APIKey,
 			"device":  device.DeviceID,
-			"model":   device.Model,
+			"sku":     device.SKU,
 		}
 
-		// All devices with brightness support get a brightness switch.
-		if device.SupportsCmd("brightness") || device.SupportsCmd("turn") {
+		if isPlug {
 			configs = append(configs, resource.Config{
 				Name:       safeName,
 				API:        toggleswitch.API,
-				Model:      GoveeLightBrightness,
+				Model:      plug.GoveePlugSwitch,
 				Attributes: baseAttrs,
 			})
-		}
-
-		// All retrievable devices get a sensor.
-		if device.Retrievable {
 			configs = append(configs, resource.Config{
 				Name:       fmt.Sprintf("%s-sensor", safeName),
 				API:        sensor.API,
-				Model:      GoveeLightSensor,
+				Model:      plug.GoveePlugSensor,
+				Attributes: baseAttrs,
+			})
+			continue
+		}
+
+		// On/off switch for any light that supports on/off.
+		if supportsOnOff {
+			configs = append(configs, resource.Config{
+				Name:       fmt.Sprintf("%s-switch", safeName),
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightSwitch,
 				Attributes: baseAttrs,
 			})
 		}
 
-		// Color-capable devices get one switch per RGB channel.
+		// Brightness switch for any light that supports brightness control.
+		if supportsBrightness {
+			configs = append(configs, resource.Config{
+				Name:       safeName,
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightBrightness,
+				Attributes: baseAttrs,
+			})
+		}
+
+		// Sensor for every light device.
+		configs = append(configs, resource.Config{
+			Name:       fmt.Sprintf("%s-sensor", safeName),
+			API:        sensor.API,
+			Model:      light.GoveeLightSensor,
+			Attributes: baseAttrs,
+		})
+
+		// Color temperature switch for lights that support color temperature.
+		if supportsColorTemp {
+			configs = append(configs, resource.Config{
+				Name:       fmt.Sprintf("%s-color-temp", safeName),
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightColorTemp,
+				Attributes: baseAttrs,
+			})
+		}
+
+		// Per-channel color switches for color-capable lights.
 		if supportsColor {
-			colorDevices = append(colorDevices, device)
 			for _, channel := range []string{"red", "green", "blue"} {
 				channelAttrs := utils.AttributeMap{
 					"api_key": s.cfg.APIKey,
 					"device":  device.DeviceID,
-					"model":   device.Model,
+					"sku":     device.SKU,
 					"channel": channel,
 				}
 				configs = append(configs, resource.Config{
 					Name:       fmt.Sprintf("%s-%s", safeName, channel),
 					API:        toggleswitch.API,
-					Model:      GoveeLightColor,
+					Model:      light.GoveeLightColor,
 					Attributes: channelAttrs,
 				})
 			}
 		}
-	}
 
-	// Emit a single mode switch covering all color-capable devices.
-	if len(colorDevices) > 0 {
-		modeDevices := make([]map[string]interface{}, 0, len(colorDevices))
-		for _, d := range colorDevices {
-			modeDevices = append(modeDevices, map[string]interface{}{
-				"device": d.DeviceID,
-				"model":  d.Model,
+		// Scene switch for lights that support dynamic scenes.
+		if supportsScene {
+			configs = append(configs, resource.Config{
+				Name:       fmt.Sprintf("%s-scene", safeName),
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightScene,
+				Attributes: baseAttrs,
 			})
 		}
-		configs = append(configs, resource.Config{
-			Name:  "govee-mode",
-			API:   toggleswitch.API,
-			Model: GoveeLightMode,
-			Attributes: utils.AttributeMap{
-				"api_key":  s.cfg.APIKey,
-				"daylight": modeDevices,
-				"warm":     modeDevices,
-			},
-		})
+
+		// DIY scene switch for lights that support user-created DIY scenes.
+		if supportsDIYScene {
+			configs = append(configs, resource.Config{
+				Name:       fmt.Sprintf("%s-diy-scene", safeName),
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightDIYScene,
+				Attributes: baseAttrs,
+			})
+		}
+
+		// Snapshot switch for lights that support saved snapshots.
+		if supportsSnapshot {
+			configs = append(configs, resource.Config{
+				Name:       fmt.Sprintf("%s-snapshot", safeName),
+				API:        toggleswitch.API,
+				Model:      light.GoveeLightSnapshot,
+				Attributes: baseAttrs,
+			})
+		}
 	}
 
 	return configs, nil

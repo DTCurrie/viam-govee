@@ -1,4 +1,4 @@
-package viamgovee
+package light
 
 import (
 	"context"
@@ -8,37 +8,39 @@ import (
 	toggleswitch "go.viam.com/rdk/components/switch"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
+
+	"github.com/DTCurrie/viam-govee/internal/common"
 )
 
 // GoveeLightColor is the model identifier for the govee-light-color component.
-var GoveeLightColor = family.WithModel("govee-light-color")
+var GoveeLightColor = common.Family.WithModel("govee-light-color")
 
 func init() {
 	resource.RegisterComponent(toggleswitch.API, GoveeLightColor,
-		resource.Registration[toggleswitch.Switch, *LightColorConfig]{
+		resource.Registration[toggleswitch.Switch, *ColorConfig]{
 			Constructor: newGoveeLightColor,
 		},
 	)
 }
 
-// LightColorConfig is the configuration for the govee-light-color component.
-type LightColorConfig struct {
+// ColorConfig is the configuration for the govee-light-color component.
+type ColorConfig struct {
 	APIKey   string `json:"api_key"`
 	DeviceID string `json:"device"`
-	Model    string `json:"model"`
+	SKU      string `json:"sku"`
 	Channel  string `json:"channel"` // "red", "green", or "blue"
 }
 
 // Validate checks that all required fields are set.
-func (cfg *LightColorConfig) Validate(_ string) ([]string, []string, error) {
+func (cfg *ColorConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
 	if cfg.DeviceID == "" {
 		return nil, nil, fmt.Errorf("device (MAC address) is required")
 	}
-	if cfg.Model == "" {
-		return nil, nil, fmt.Errorf("model is required")
+	if cfg.SKU == "" {
+		return nil, nil, fmt.Errorf("sku is required")
 	}
 	switch cfg.Channel {
 	case "red", "green", "blue":
@@ -54,18 +56,18 @@ type goveeLightColor struct {
 
 	name   resource.Name
 	logger logging.Logger
-	cfg    *LightColorConfig
+	cfg    *ColorConfig
 
 	client *govee.Client
 }
 
 func newGoveeLightColor(ctx context.Context, _ resource.Dependencies, rawConf resource.Config, logger logging.Logger) (toggleswitch.Switch, error) {
-	conf, err := resource.NativeConfig[*LightColorConfig](rawConf)
+	conf, err := resource.NativeConfig[*ColorConfig](rawConf)
 	if err != nil {
 		return nil, err
 	}
 
-	client, _, err := connectToDevice(ctx, conf.APIKey, conf.DeviceID, conf.Model, logger)
+	client, _, err := common.ConnectToDevice(ctx, conf.APIKey, conf.DeviceID, conf.SKU, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -95,14 +97,14 @@ func (s *goveeLightColor) SetPosition(ctx context.Context, position uint32, _ ma
 	}
 
 	// Read current color to preserve the other two channels.
-	state, err := s.client.GetDeviceState(ctx, s.cfg.DeviceID, s.cfg.Model)
+	state, err := s.client.GetDeviceState(ctx, s.cfg.SKU, s.cfg.DeviceID)
 	if err != nil {
 		return fmt.Errorf("failed to get device state: %w", err)
 	}
 
 	r, g, b := 0, 0, 0
-	if state.Color != nil {
-		r, g, b = state.Color.R, state.Color.G, state.Color.B
+	if cr, cg, cb, ok := state.ColorRGB(); ok {
+		r, g, b = cr, cg, cb
 	}
 
 	channelValue := int(position)
@@ -116,33 +118,39 @@ func (s *goveeLightColor) SetPosition(ctx context.Context, position uint32, _ ma
 	}
 
 	if r == 0 && g == 0 && b == 0 {
-		return s.client.TurnOff(ctx, s.cfg.DeviceID, s.cfg.Model)
+		return s.client.TurnOff(ctx, s.cfg.SKU, s.cfg.DeviceID)
 	}
 
-	if err := s.client.TurnOn(ctx, s.cfg.DeviceID, s.cfg.Model); err != nil {
+	if err := s.client.TurnOn(ctx, s.cfg.SKU, s.cfg.DeviceID); err != nil {
 		return err
 	}
-	return s.client.SetColor(ctx, s.cfg.DeviceID, s.cfg.Model, r, g, b)
+	return s.client.SetColor(ctx, s.cfg.SKU, s.cfg.DeviceID, r, g, b)
 }
 
 // GetPosition returns the current value of the configured RGB channel (0-255).
 func (s *goveeLightColor) GetPosition(ctx context.Context, _ map[string]interface{}) (uint32, error) {
-	state, err := s.client.GetDeviceState(ctx, s.cfg.DeviceID, s.cfg.Model)
+	state, err := s.client.GetDeviceState(ctx, s.cfg.SKU, s.cfg.DeviceID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get device state: %w", err)
 	}
 
-	if state.PowerState == "off" || state.Color == nil {
+	on, _ := state.PowerState()
+	if !on {
+		return 0, nil
+	}
+
+	r, g, b, ok := state.ColorRGB()
+	if !ok {
 		return 0, nil
 	}
 
 	switch s.cfg.Channel {
 	case "red":
-		return uint32(state.Color.R), nil
+		return uint32(r), nil
 	case "green":
-		return uint32(state.Color.G), nil
+		return uint32(g), nil
 	case "blue":
-		return uint32(state.Color.B), nil
+		return uint32(b), nil
 	}
 
 	return 0, fmt.Errorf("unknown channel %q", s.cfg.Channel)

@@ -3,7 +3,7 @@ module github.com/DTCurrie/viam-govee
 go 1.25.1
 
 require (
-	github.com/DTCurrie/govee-go v0.0.2
+	github.com/DTCurrie/govee-go v0.0.3
 	go.viam.com/rdk v0.103.0
 )
 
@@ -41,6 +41,7 @@ require (
 	github.com/dgottlieb/smarty-assertions v1.2.6 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/eclipse/paho.mqtt.golang v1.5.1 // indirect
 	github.com/edaniels/golog v0.0.0-20250821172758-0d08e67686a9 // indirect
 	github.com/edaniels/lidario v0.0.0-20220607182921-5879aa7b96dd // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
@@ -69,6 +70,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
 	github.com/improbable-eng/grpc-web v0.15.0 // indirect

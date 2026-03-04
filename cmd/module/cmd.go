@@ -7,15 +7,23 @@ import (
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/discovery"
 
-	viamgovee "github.com/DTCurrie/viam-govee"
+	"github.com/DTCurrie/viam-govee/discover"
+	"github.com/DTCurrie/viam-govee/light"
+	"github.com/DTCurrie/viam-govee/plug"
 )
 
 func main() {
 	module.ModularMain(
-		resource.APIModel{API: toggleswitch.API, Model: viamgovee.GoveeLightBrightness},
-		resource.APIModel{API: toggleswitch.API, Model: viamgovee.GoveeLightColor},
-		resource.APIModel{API: toggleswitch.API, Model: viamgovee.GoveeLightMode},
-		resource.APIModel{API: discovery.API, Model: viamgovee.GoveeDiscovery},
-		resource.APIModel{API: sensor.API, Model: viamgovee.GoveeLightSensor},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightSwitch},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightBrightness},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightColor},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightColorTemp},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightScene},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightDIYScene},
+		resource.APIModel{API: toggleswitch.API, Model: light.GoveeLightSnapshot},
+		resource.APIModel{API: toggleswitch.API, Model: plug.GoveePlugSwitch},
+		resource.APIModel{API: discovery.API, Model: discover.GoveeDiscovery},
+		resource.APIModel{API: sensor.API, Model: light.GoveeLightSensor},
+		resource.APIModel{API: sensor.API, Model: plug.GoveePlugSensor},
 	)
 }

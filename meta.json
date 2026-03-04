@@ -7,8 +7,14 @@
   "models": [
     {
       "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-switch",
+      "short_description": "Govee light on/off control",
+      "markdown_link": "README.md#govee-light-switch"
+    },
+    {
+      "api": "rdk:component:switch",
       "model": "dtcurrie:viam-govee:govee-light-brightness",
-      "short_description": "Govee light on/off and brightness control",
+      "short_description": "Govee light brightness control (0-100%)",
       "markdown_link": "README.md#govee-light-brightness"
     },
     {
@@ -19,9 +25,27 @@
     },
     {
       "api": "rdk:component:switch",
-      "model": "dtcurrie:viam-govee:govee-lights-mode",
-      "short_description": "Govee pre-defined lighting modes",
-      "markdown_link": "README.md#govee-lights-mode"
+      "model": "dtcurrie:viam-govee:govee-light-scene",
+      "short_description": "Govee dynamic scene selection per light",
+      "markdown_link": "README.md#govee-light-scene"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-color-temp",
+      "short_description": "Govee light color temperature control",
+      "markdown_link": "README.md#govee-light-color-temp"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-diy-scene",
+      "short_description": "Govee user-created DIY scene selection per light",
+      "markdown_link": "README.md#govee-light-diy-scene"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-light-snapshot",
+      "short_description": "Govee saved snapshot activation per light",
+      "markdown_link": "README.md#govee-light-snapshot"
     },
     {
       "api": "rdk:service:discovery",
@@ -34,6 +58,18 @@
       "model": "dtcurrie:viam-govee:govee-light-sensor",
       "short_description": "Govee light state and color sensor readings",
       "markdown_link": "README.md#govee-light-sensor"
+    },
+    {
+      "api": "rdk:component:switch",
+      "model": "dtcurrie:viam-govee:govee-plug-switch",
+      "short_description": "Govee smart plug on/off control",
+      "markdown_link": "README.md#govee-plug-switch"
+    },
+    {
+      "api": "rdk:component:sensor",
+      "model": "dtcurrie:viam-govee:govee-plug-sensor",
+      "short_description": "Govee smart plug state sensor readings",
+      "markdown_link": "README.md#govee-plug-sensor"
     }
   ],
   "entrypoint": "bin/viam-govee",

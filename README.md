@@ -3,7 +3,7 @@
 
 # Module viam-govee
 
-A [Viam](https://www.viam.com/) module for controlling [Govee](https://us.govee.com/) smart lights using the [Govee OpenAPI](https://developer.govee.com/docs).
+A [Viam](https://www.viam.com/) module for controlling [Govee](https://us.govee.com/) smart devices using the [Govee OpenAPI](https://developer.govee.com/docs).
 
 Powered by the [govee-go](https://github.com/DTCurrie/govee-go) client library.
 

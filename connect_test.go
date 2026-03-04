@@ -13,7 +13,7 @@ import (
 
 func TestConnectToDevice_Found(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, _ *http.Request) {
 		respondGovee(t, w, map[string]any{"devices": testDeviceList()})
 	})
 	srv := httptest.NewServer(mux)
@@ -47,7 +47,7 @@ func TestConnectToDevice_Found(t *testing.T) {
 
 func TestConnectToDevice_NotFound(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, _ *http.Request) {
 		respondGovee(t, w, map[string]any{"devices": testDeviceList()})
 	})
 	srv := httptest.NewServer(mux)
@@ -72,14 +72,16 @@ func TestConnectToDevice_NotFound(t *testing.T) {
 
 func TestConnectToDevice_APIError(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"code":    403,
 			"message": "Unauthorized",
 			"data":    nil,
-		})
+		}); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

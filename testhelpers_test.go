@@ -83,7 +83,7 @@ func newTestServer(t *testing.T, devices []map[string]any, stateProps []any) *te
 	ts := &testServer{}
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v1/devices", func(w http.ResponseWriter, _ *http.Request) {
 		respondGovee(t, w, map[string]any{"devices": devices})
 	})
 

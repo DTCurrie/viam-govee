@@ -15,6 +15,7 @@ import (
 	"go.viam.com/rdk/utils"
 )
 
+// GoveeDiscovery is the model identifier for the govee-discovery service.
 var GoveeDiscovery = family.WithModel("govee-discovery")
 
 func init() {
@@ -30,7 +31,8 @@ type DiscoveryConfig struct {
 	APIKey string `json:"api_key"`
 }
 
-func (cfg *DiscoveryConfig) Validate(path string) ([]string, []string, error) {
+// Validate checks that the required api_key field is set.
+func (cfg *DiscoveryConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
@@ -70,15 +72,18 @@ func newGoveeDiscover(ctx context.Context, _ resource.Dependencies, rawConf reso
 	}, nil
 }
 
+// Name returns the resource name of the discovery service.
 func (s *GoveeDiscover) Name() resource.Name {
 	return s.name
 }
 
-func (s *GoveeDiscover) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+// DoCommand is a no-op implementation of the resource.Resource interface.
+func (s *GoveeDiscover) DoCommand(_ context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
-func (s *GoveeDiscover) DiscoverResources(ctx context.Context, extra map[string]any) ([]resource.Config, error) {
+// DiscoverResources returns Viam resource configs for all discovered Govee devices.
+func (s *GoveeDiscover) DiscoverResources(ctx context.Context, _ map[string]any) ([]resource.Config, error) {
 	return s.discoverGovee(ctx)
 }
 

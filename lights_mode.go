@@ -11,6 +11,7 @@ import (
 	"go.viam.com/rdk/resource"
 )
 
+// GoveeLightMode is the model identifier for the govee-lights-mode component.
 var GoveeLightMode = family.WithModel("govee-lights-mode")
 
 func init() {
@@ -34,7 +35,8 @@ type LightModeConfig struct {
 	Warm     []DeviceRef `json:"warm,omitempty"`
 }
 
-func (cfg *LightModeConfig) Validate(path string) ([]string, []string, error) {
+// Validate checks that the required api_key field is set.
+func (cfg *LightModeConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
@@ -67,7 +69,7 @@ type goveeLightMode struct {
 	savedStates map[string]*savedState // device MAC -> saved state
 }
 
-func newGoveeLightMode(ctx context.Context, _ resource.Dependencies, rawConf resource.Config, logger logging.Logger) (toggleswitch.Switch, error) {
+func newGoveeLightMode(_ context.Context, _ resource.Dependencies, rawConf resource.Config, logger logging.Logger) (toggleswitch.Switch, error) {
 	conf, err := resource.NativeConfig[*LightModeConfig](rawConf)
 	if err != nil {
 		return nil, err
@@ -88,7 +90,7 @@ func (s *goveeLightMode) Name() resource.Name {
 	return s.name
 }
 
-func (s *goveeLightMode) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (s *goveeLightMode) DoCommand(_ context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
@@ -96,7 +98,7 @@ func (s *goveeLightMode) DoCommand(ctx context.Context, cmd map[string]interface
 // Position 0 = "none" (restore saved state).
 // Position 1 = "daylight" (cool white ~6500K, full brightness).
 // Position 2 = "warm" (warm white ~2700K, moderate brightness).
-func (s *goveeLightMode) SetPosition(ctx context.Context, position uint32, extra map[string]interface{}) error {
+func (s *goveeLightMode) SetPosition(ctx context.Context, position uint32, _ map[string]interface{}) error {
 	if int(position) >= len(modeNames) {
 		return fmt.Errorf("invalid position %d, must be 0-%d", position, len(modeNames)-1)
 	}
@@ -123,13 +125,13 @@ func (s *goveeLightMode) SetPosition(ctx context.Context, position uint32, extra
 	return fmt.Errorf("unknown mode %q", modeNames[position])
 }
 
-func (s *goveeLightMode) GetPosition(ctx context.Context, extra map[string]interface{}) (uint32, error) {
+func (s *goveeLightMode) GetPosition(_ context.Context, _ map[string]interface{}) (uint32, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.position, nil
 }
 
-func (s *goveeLightMode) GetNumberOfPositions(ctx context.Context, extra map[string]interface{}) (uint32, []string, error) {
+func (s *goveeLightMode) GetNumberOfPositions(_ context.Context, _ map[string]interface{}) (uint32, []string, error) {
 	return uint32(len(modeNames)), modeNames, nil
 }
 

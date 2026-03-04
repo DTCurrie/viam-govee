@@ -11,6 +11,7 @@ import (
 	"go.viam.com/rdk/resource"
 )
 
+// GoveeLightSensor is the model identifier for the govee-light-sensor component.
 var GoveeLightSensor = family.WithModel("govee-light-sensor")
 
 func init() {
@@ -28,7 +29,8 @@ type LightSensorConfig struct {
 	Model    string `json:"model"`
 }
 
-func (cfg *LightSensorConfig) Validate(path string) ([]string, []string, error) {
+// Validate checks that all required fields are set.
+func (cfg *LightSensorConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
@@ -77,13 +79,13 @@ func (s *goveeLightSensor) Name() resource.Name {
 	return s.name
 }
 
-func (s *goveeLightSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (s *goveeLightSensor) DoCommand(_ context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
 // Readings returns all available information about the Govee device: static
 // metadata from the device list and live state from the state query.
-func (s *goveeLightSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
+func (s *goveeLightSensor) Readings(ctx context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	readings := map[string]interface{}{
 		// Static metadata from device list
 		"device_name":  s.device.DeviceName,

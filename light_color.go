@@ -10,6 +10,7 @@ import (
 	"go.viam.com/rdk/resource"
 )
 
+// GoveeLightColor is the model identifier for the govee-light-color component.
 var GoveeLightColor = family.WithModel("govee-light-color")
 
 func init() {
@@ -28,7 +29,8 @@ type LightColorConfig struct {
 	Channel  string `json:"channel"` // "red", "green", or "blue"
 }
 
-func (cfg *LightColorConfig) Validate(path string) ([]string, []string, error) {
+// Validate checks that all required fields are set.
+func (cfg *LightColorConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
@@ -80,14 +82,14 @@ func (s *goveeLightColor) Name() resource.Name {
 	return s.name
 }
 
-func (s *goveeLightColor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (s *goveeLightColor) DoCommand(_ context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
 // SetPosition sets the configured RGB channel to the given value (0-255).
 // If all channels become 0 the light is turned off. Otherwise the light is
 // turned on and the full RGB color is sent to the device.
-func (s *goveeLightColor) SetPosition(ctx context.Context, position uint32, extra map[string]interface{}) error {
+func (s *goveeLightColor) SetPosition(ctx context.Context, position uint32, _ map[string]interface{}) error {
 	if position > 255 {
 		return fmt.Errorf("position must be 0-255, got %d", position)
 	}
@@ -124,7 +126,7 @@ func (s *goveeLightColor) SetPosition(ctx context.Context, position uint32, extr
 }
 
 // GetPosition returns the current value of the configured RGB channel (0-255).
-func (s *goveeLightColor) GetPosition(ctx context.Context, extra map[string]interface{}) (uint32, error) {
+func (s *goveeLightColor) GetPosition(ctx context.Context, _ map[string]interface{}) (uint32, error) {
 	state, err := s.client.GetDeviceState(ctx, s.cfg.DeviceID, s.cfg.Model)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get device state: %w", err)
@@ -146,6 +148,6 @@ func (s *goveeLightColor) GetPosition(ctx context.Context, extra map[string]inte
 	return 0, fmt.Errorf("unknown channel %q", s.cfg.Channel)
 }
 
-func (s *goveeLightColor) GetNumberOfPositions(ctx context.Context, extra map[string]interface{}) (uint32, []string, error) {
+func (s *goveeLightColor) GetNumberOfPositions(_ context.Context, _ map[string]interface{}) (uint32, []string, error) {
 	return 256, nil, nil
 }

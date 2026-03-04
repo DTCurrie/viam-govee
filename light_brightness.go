@@ -11,6 +11,7 @@ import (
 	"go.viam.com/rdk/resource"
 )
 
+// GoveeLightBrightness is the model identifier for the govee-light-brightness component.
 var GoveeLightBrightness = family.WithModel("govee-light-brightness")
 
 func init() {
@@ -28,7 +29,8 @@ type LightBrightnessConfig struct {
 	Model    string `json:"model"`
 }
 
-func (cfg *LightBrightnessConfig) Validate(path string) ([]string, []string, error) {
+// Validate checks that all required fields are set.
+func (cfg *LightBrightnessConfig) Validate(_ string) ([]string, []string, error) {
 	if cfg.APIKey == "" {
 		return nil, nil, fmt.Errorf("api_key is required")
 	}
@@ -88,13 +90,13 @@ func (s *goveeLightBrightness) Name() resource.Name {
 	return s.name
 }
 
-func (s *goveeLightBrightness) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (s *goveeLightBrightness) DoCommand(_ context.Context, _ map[string]interface{}) (map[string]interface{}, error) {
 	return nil, nil
 }
 
 // SetPosition controls on/off and brightness.
 // 0 = off. 1 = on at last-set brightness. 2-100 map to brightness levels 1-100%.
-func (s *goveeLightBrightness) SetPosition(ctx context.Context, position uint32, extra map[string]interface{}) error {
+func (s *goveeLightBrightness) SetPosition(ctx context.Context, position uint32, _ map[string]interface{}) error {
 	if position > 100 {
 		return fmt.Errorf("position must be 0-100, got %d", position)
 	}
@@ -120,7 +122,7 @@ func (s *goveeLightBrightness) SetPosition(ctx context.Context, position uint32,
 }
 
 // GetPosition returns the current brightness mapped back to a switch position.
-func (s *goveeLightBrightness) GetPosition(ctx context.Context, extra map[string]interface{}) (uint32, error) {
+func (s *goveeLightBrightness) GetPosition(ctx context.Context, _ map[string]interface{}) (uint32, error) {
 	state, err := s.client.GetDeviceState(ctx, s.cfg.DeviceID, s.cfg.Model)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get device state: %w", err)
@@ -142,7 +144,7 @@ func (s *goveeLightBrightness) GetPosition(ctx context.Context, extra map[string
 	return pos, nil
 }
 
-func (s *goveeLightBrightness) GetNumberOfPositions(ctx context.Context, extra map[string]interface{}) (uint32, []string, error) {
+func (s *goveeLightBrightness) GetNumberOfPositions(_ context.Context, _ map[string]interface{}) (uint32, []string, error) {
 	// 0 = off, 1 = on at last brightness, 2-100 = brightness levels
 	return 101, nil, nil
 }

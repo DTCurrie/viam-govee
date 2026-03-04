@@ -56,10 +56,10 @@ func TestDiscoverGovee(t *testing.T) {
 	// Plus 1 mode switch for color devices.
 	// Total: 5 + 1 + 1 = 7.
 	if len(configs) != 7 {
-		t.Fatalf("expected 7 configs, got %d", len(configs))
 		for i, c := range configs {
 			t.Logf("  [%d] name=%s api=%s model=%s", i, c.Name, c.API, c.Model)
 		}
+		t.Fatalf("expected 7 configs, got %d", len(configs))
 	}
 
 	// Check that we got the expected types.

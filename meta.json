@@ -3,7 +3,7 @@
   "module_id": "dtcurrie:viam-govee",
   "visibility": "public",
   "url": "https://github.com/DTCurrie/viam-govee",
-  "description": "Govee smart light control module for Viam",
+  "description": "Govee smart device control module for Viam",
   "models": [
     {
       "api": "rdk:component:switch",

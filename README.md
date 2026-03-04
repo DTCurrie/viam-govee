@@ -2,7 +2,9 @@
 
 A [Viam](https://www.viam.com/) module for controlling [Govee](https://us.govee.com/) smart lights using the [Govee Developer REST API](https://developer.govee.com/docs).
 
-Mirrors the architecture of [viam-philips-hue](https://github.com/DTCurrie/viam-philips-hue) and is powered by the [govee-go](https://github.com/DTCurrie/govee-go) client library.
+Powered by the [govee-go](https://github.com/DTCurrie/govee-go) client library.
+
+[Viam Registry](https://app.viam.com/module/dtcurrie/viam-govee)
 
 ## Setup
 
